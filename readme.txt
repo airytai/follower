@@ -4,7 +4,7 @@ current stage: pass test 1, work on test 2.
 
 file:
   (our work)
-  A2D_intf.sv         /* Instantiate SPI master */
+  	A2D_intf.sv         /* Instantiate SPI master */
 	SPI_mstr.sv         /* MOSI, MISO */
 	UART_rcv.v
 	UART_tx.v
@@ -17,25 +17,25 @@ file:
 	pwm_10.sv           /* 10 bit width PWM used in motor_cntrl */ 
 
   
-  A2D_test.sv         /* maynot need in final project, for ex10 demo, demo 2 not pass */
+  	A2D_test.sv         /* maynot need in final project, for ex10 demo, demo 2 not pass */
   
   (professor provide)
-  dig_core.sv         /* Instantiate cmd_contrl and motion_cntrl */
+  	dig_core.sv         /* Instantiate cmd_contrl and motion_cntrl */
 	follower.v          /* Instantiate dig_core, uart_rcv, motor_cntrl, barcode, A2D_intf */
-  reset_synch.v
-  ADC128S.sv          /* Instantiate SPI_ADC128S, used with analog.dat, may not need in Quartux */
-  SPI_ADC128S.sv      /* Slave */
-  analog.dat          /* analog.dat to simulate data input, may not need in Quartux*/
-  barcode_mimic.sv
+  	reset_synch.v
+  	ADC128S.sv          /* Instantiate SPI_ADC128S, used with analog.dat, may not need in Quartux */
+  	SPI_ADC128S.sv      /* Slave */
+  	analog.dat          /* analog.dat to simulate data input, may not need in Quartux*/
+  	barcode_mimic.sv
 	buzz_cntr.v
 	check_math.pl
-  Follower.qpf        /* Quartux files for FPGA board */
+  	Follower.qpf        /* Quartux files for FPGA board */
 	Follower.qsf
 	
  
  directory:
 	Tests/              /* test cases provided by professor */ 
-  tb/                 /* some of our own testbenches */ 
+  	tb/                 /* some of our own testbenches */ 
 
 
 Note:
