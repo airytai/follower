@@ -126,7 +126,7 @@ always@(posedge clk, negedge rst_n) begin
     if(!rst_n)
         ID_reg <= 8'h00;
     else if(shift) // left shift
-        ID_reg <= {ID_reg, BC}; 
+        ID_reg <= {ID_reg, BC};
 end
 
 // initiate state transition
@@ -139,7 +139,7 @@ end
 
 // index_cnt to count number of BC shift in and latch the output if finish
 always@(posedge clk, negedge rst_n) begin
-    if (!rst_n)
+    if (!rst_n || clr_cpt_value)
         index_cnt <= 4'h0;
     else if(shift)
         index_cnt <= index_cnt + 1'b1;
@@ -151,6 +151,8 @@ end
 // if(cnt_match_cpt) assert clr_cnt to get the counter reset to 0
 // deassert the holder and restart the strt_cnt when falling edge detected
 always@(state, falling_edge, rising_edge, cnt_match_cpt, index_cnt) begin
+    if (!rst_n) ID = 8'h0;
+
     // end_cpt = 1'b1; // default to end the capture
     // strt_cnt = 1'b0;
     compare = 1'b0;
