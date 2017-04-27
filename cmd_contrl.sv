@@ -100,6 +100,8 @@ always @(posedge clk, negedge rst_n) begin
 		buzz_cnt <= BUZZ_INIT;
 	end
 	else begin
+		if (buzz_cnt == BUZZ_MAX)			// Prevent overflow
+			buzz_cnt = BUZZ_INIT;
 		if (buzz_enable)
 			buzz_cnt <= buzz_cnt + 1'b1;
 
@@ -108,8 +110,7 @@ always @(posedge clk, negedge rst_n) begin
 		else
 			buzz <= 1'b0;
 
-		if (buzz_cnt == BUZZ_MAX)			// Prevent overflow
-			buzz_cnt = BUZZ_INIT;
+		
 	end
 end
 assign buzz_n = (buzz_enable) ? ~buzz : buzz;

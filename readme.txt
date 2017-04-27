@@ -1,6 +1,6 @@
 clone the git repository, for modelsim, add all the .s or .sv file.
 
-current stage: pass test 1, work on test 2.
+current stage: pass test 1, 2, and 3, work on test 4.
 
 file:
   (our work)
