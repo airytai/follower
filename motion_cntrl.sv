@@ -31,8 +31,7 @@ reg signed [15:0] Accum;
 reg [11:0] lft_reg;
 reg [11:0] rht_reg;
 reg [11:0] Fwd;
-reg [1:0] int_dec;
-reg dst2intgrl;
+reg [2:0] int_dec;
 reg signed [15:0] dst; // change to 16 bit width
 wire pwm_output; 
 localparam DUTY_CYCLE = 8'h8C;
@@ -51,13 +50,15 @@ reg dst2Accum,dst2Err,dst2Int,dst2Icmp,dst2Pcmp,dst2lft,dst2rht; // signal used 
 reg waitcounter;
 reg clr_waitcounter;
 reg set_waitcounter;
+reg clr_int_dec;
+reg set_int_dec;
 
 // A2D_intf iDUT_A2D_intf( .clk(clk), .rst_n(rst_n), .strt_cnv(strt_cnv), .cnv_cmplt(cnv_cmplt), .chnnl(chnnl), .res(res), .a2d_SS_n(a2d_SS_n), .SCLK(SCLK), .MOSI(MOSI), .MISO(MISO));
 // ADC128S iDUT_ADC128S( .clk(clk), .rst_n(rst_n), .SS_n(a2d_SS_n), .SCLK(SCLK), .MISO(MISO), .MOSI(MOSI));
 alu iDUT_alu(.Accum(Accum), .Pcomp(Pcomp), .Icomp(Icomp), .Pterm(Pterm), .Iterm(Iterm), .Fwd(Fwd), .A2D_res(A2D_res), .Error(Error), .Intgrl(Intgrl), .src0sel(src0sel), .src1sel(src1sel), .multiply(multiply), .sub(sub), .mult2(mult2), .mult4(mult4), .saturate(saturate), .dst(dst));
 pwm iDUT_pwm(.duty(DUTY_CYCLE),.clk(clk),.rst_n(rst_n),.PWM_sig(pwm_output));
 
-assign dst2intgrl=&int_dec;
+assign dst2Int=(int_dec==3'b100)?1'b1:1'b0;
 
 typedef enum reg [4:0] {RESET,TIMER1,CONVCOMPLETE1,TIMER2,CONVCOMPLETE2, CHECK6, INTG,ITERM, PTERM, MRT_R1, MRT_R2, MRT_L1, MRT_L2} state_t;
 state_t state, next_state;
@@ -67,7 +68,7 @@ always_ff @(posedge clk, negedge rst_n) begin
 		Fwd <= 12'h000;
 	else if (~go) // if go deasserted Fwd knocked down so
 		Fwd <= 12'b000; // we accelerate from zero on next start.
-	else if (dst2intgrl & ~&Fwd[10:8]) // 43.75% full speed
+	else if (dst2Int & ~&Fwd[10:8]) // 43.75% full speed
 		Fwd <= Fwd + 1'b1;
 end
 
@@ -125,6 +126,7 @@ always_comb begin
 	//default outputs// 
 	clr_waitcounter = 0;
 	set_waitcounter = 0;
+	set_int_dec = 1'b0;
 	strt_cnv=0;
 	intimer1=0;
 	intimer2=0;
@@ -140,7 +142,6 @@ always_comb begin
 
 	dst2Accum = 0;
 	dst2Err=0;
-	dst2Int=0;
 	dst2Icmp=0;
 	dst2Pcmp=0;
 	dst2lft=0;
@@ -258,8 +259,7 @@ always_comb begin
 		end
 		CHECK6:
 			if(chnnlcounter==6) begin
-					chnnl = 6;
-					int_dec = 0; // reset to count for 4 times
+				chnnl = 6;
 				next_state=INTG; // go to integration state
 			end else begin
 				next_state=TIMER1; // otherwise count again
@@ -267,11 +267,8 @@ always_comb begin
 		INTG: begin
 			saturate = 1;
 			src1sel = 3;
-				src0sel = 1;
-			int_dec = int_dec + 1;
-			if(dst2intgrl) begin
-				dst2Int = 1;
-			end
+			src0sel = 1;
+			set_int_dec = 1'b1;
 			next_state = ITERM;
 			clr_waitcounter = 1; // for multiplicate
 			// do we need to store Intgrl anywhere?
@@ -382,6 +379,14 @@ always @(posedge clk, negedge rst_n) begin
 		waitcounter <= 1'b1;
 end
 
+always @(posedge clk, negedge rst_n) begin
+	if(!rst_n || clr_int_dec) begin
+		int_dec <= 1'b0;
+	end else if(set_int_dec)
+		int_dec <= int_dec + 1'b1;
+end
+
+assign clr_int_dec = (dst2Int)?1'b1:1'b0;
 
 endmodule
 
