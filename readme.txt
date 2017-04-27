@@ -1,6 +1,7 @@
 clone the git repository, for modelsim, add all the .s or .sv file.
 
 current stage: pass test 1, 2, and 3, work on test 4.
+for each test, need to update both analog.data and follower_tb.v.
 
 file:
   (our work)

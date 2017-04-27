@@ -49,6 +49,8 @@ reg multiply, sub, mult2, mult4, saturate;
 
 reg dst2Accum,dst2Err,dst2Int,dst2Icmp,dst2Pcmp,dst2lft,dst2rht; // signal used to determine where dst go
 reg waitcounter;
+reg clr_waitcounter;
+reg set_waitcounter;
 
 // A2D_intf iDUT_A2D_intf( .clk(clk), .rst_n(rst_n), .strt_cnv(strt_cnv), .cnv_cmplt(cnv_cmplt), .chnnl(chnnl), .res(res), .a2d_SS_n(a2d_SS_n), .SCLK(SCLK), .MOSI(MOSI), .MISO(MISO));
 // ADC128S iDUT_ADC128S( .clk(clk), .rst_n(rst_n), .SS_n(a2d_SS_n), .SCLK(SCLK), .MISO(MISO), .MOSI(MOSI));
@@ -121,9 +123,9 @@ always_comb begin
 	end
 
 	//default outputs// 
+	clr_waitcounter = 0;
+	set_waitcounter = 0;
 	strt_cnv=0;
-	lft=0;
-	rht=0;
 	intimer1=0;
 	intimer2=0;
 	next_state=RESET;
@@ -271,7 +273,7 @@ always_comb begin
 				dst2Int = 1;
 			end
 			next_state = ITERM;
-			waitcounter = 0; // for multiplicate
+			clr_waitcounter = 1; // for multiplicate
 			// do we need to store Intgrl anywhere?
 		end
 		ITERM: begin
@@ -281,10 +283,10 @@ always_comb begin
 			dst2Icmp = 1;
 			if(waitcounter)  begin 
 				next_state = PTERM;
-				waitcounter = 0; // reset waitcounter for next state
+				clr_waitcounter = 1; // reset waitcounter for next state
 			end else begin
 				next_state = ITERM;
-				waitcounter = waitcounter + 1;
+				set_waitcounter = 1;
 			end
 		end
 		PTERM: begin
@@ -296,7 +298,7 @@ always_comb begin
 				next_state = MRT_R1;
 			else begin
 				next_state = PTERM;
-				waitcounter = waitcounter + 1;
+				set_waitcounter = 1;
 			end
 		end
 		MRT_R1: begin
@@ -307,7 +309,7 @@ always_comb begin
 			next_state = MRT_R2;
 		end
 		MRT_R2: begin
-			// rht_reg = Accum â Icomp
+			// rht_reg = Accum – Icomp
 			saturate  = 1;
 			src1sel = 0;
 			src0sel = 2;
@@ -368,5 +370,18 @@ always @(posedge clk, negedge rst_n) begin
 end
 
 assign LEDs = Error[11:4];
+assign lft = lft_reg[11:1];
+assign rht = rht_reg[11:1];
+
+always @(posedge clk, negedge rst_n) begin
+	if(!rst_n) begin
+		waitcounter <= 1'b0;
+	end else if(clr_waitcounter)
+		waitcounter <= 1'b0;
+	else if(set_waitcounter)
+		waitcounter <= 1'b1;
+end
+
 
 endmodule
+
