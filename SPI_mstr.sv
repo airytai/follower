@@ -113,6 +113,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
 
     reg trmt_strt; // transmission start
     reg clr_trmt_strt;
+    reg set_trmt_strt;
     reg [15:0] cmd_reg;
     // SS_n deasserted when wrt asserted
     // also load cmd
@@ -120,7 +121,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
         begin
             if(!rst_n) begin
                 trmt_strt <= 1'b0;
-            end else if(wrt) begin
+            end else if(wrt || set_trmt_strt) begin
                 trmt_strt <= 1'b1;
             end else if(clr_trmt_strt)
                 trmt_strt <= 1'b0; // if done, reset
@@ -182,6 +183,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
             state_nxt = IDLE;
             clr_dummy_finish = 1'b0;
             set_dummy_finish = 1'b0;
+            set_trmt_strt = 1'b0;
 
             case(state)
                 IDLE: begin
@@ -192,6 +194,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
                 end
                 // skip the first fall edge
                 SKIP_1st_fall: begin
+                    set_trmt_strt = 1'b1;
                     shift = SCLK_rise; // 0
                     if (SCLK_fall)
                         state_nxt = TMIT;
