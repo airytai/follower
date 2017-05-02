@@ -9,7 +9,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     output SCLK, MOSI;
     input MISO;
 
-    typedef enum reg[1:0] {IDLE, SKIP_1st_fall, TMIT, B_P, WAIT} state_t;
+    typedef enum reg[2:0] {IDLE, SKIP_1st_fall, TMIT, B_P, WAIT} state_t;
     state_t state, state_nxt;
 
     reg [4:0] index_cnt; // 5 bits so that we can reach 16
@@ -41,8 +41,10 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     // assign SCLK
     always@(posedge clk, negedge rst_n)
         begin
-            if(!rst_n || clr_SCNT)
+            if(!rst_n)
                 SCLK_cnt <= 5'h10; // 1_0000, decimal 16
+            if(clr_SCNT)
+                SCLK_cnt <= 5'h00;
             else if( (state != WAIT) && SS_n)
                 SCLK_cnt <= 5'h10; // not enabled if SS_n high
             else

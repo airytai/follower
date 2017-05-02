@@ -250,7 +250,7 @@ always_comb begin
 					saturate = 1;
 					sub = 1;
 					mult4 = 1;
-					dst2Accum = 1;
+					dst2Err = 1;
 				end
 				// clear timer
 			end
@@ -278,6 +278,7 @@ always_comb begin
 			src1sel = 1;
 			src0sel = 1;
 			dst2Icmp = 1;
+			multiply = 1;
 			if(waitcounter)  begin 
 				next_state = PTERM;
 				clr_waitcounter = 1; // reset waitcounter for next state
@@ -291,6 +292,7 @@ always_comb begin
 			src1sel = 2;
 			src0sel = 4;
 			dst2Pcmp = 1;
+			multiply = 1;
 			if(waitcounter)
 				next_state = MRT_R1;
 			else begin
