@@ -9,7 +9,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     output SCLK, MOSI;
     input MISO;
 
-    typedef enum reg[1:0] {IDLE, SKIP_1st_fall, TMIT, B_P} state_t;
+    typedef enum reg[1:0] {IDLE, SKIP_1st_fall, TMIT, B_P, WAIT} state_t;
     state_t state, state_nxt;
 
     reg [4:0] index_cnt; // 5 bits so that we can reach 16
@@ -29,6 +29,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     // ?? any risk of directly using SS_n
 
 
+    reg clr_SCNT;
     reg [4:0] SCLK_cnt;
     reg B_P_end;
     // reg wait_1st_fall; // asserted if 1st fall hasnt met, default 1
@@ -40,9 +41,9 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     // assign SCLK
     always@(posedge clk, negedge rst_n)
         begin
-            if(!rst_n)
+            if(!rst_n || clr_SCNT)
                 SCLK_cnt <= 5'h10; // 1_0000, decimal 16
-            else if(SS_n)
+            else if( (state != WAIT) && SS_n)
                 SCLK_cnt <= 5'h10; // not enabled if SS_n high
             else
                 SCLK_cnt <= SCLK_cnt + 1'b1; // increment whenever meet next posedge of clk
@@ -108,6 +109,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     // ?? risk of default done as 0, but this 0 can control the trmt_strt
 
     reg trmt_strt; // transmission start
+    reg clr_trmt_strt;
     reg [15:0] cmd_reg;
     // SS_n deasserted when wrt asserted
     // also load cmd
@@ -117,7 +119,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
                 trmt_strt <= 1'b0;
             end else if(wrt) begin
                 trmt_strt <= 1'b1;
-            end else if(done)
+            end else if(clr_trmt_strt)
                 trmt_strt <= 1'b0; // if done, reset
         end
     assign SS_n = ~trmt_strt; // default high
@@ -165,6 +167,8 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
             shift_cmd = 1'b0;
             clr_done = 1'b0;
             set_done = 1'b0;
+            clr_SCNT = 1'b0;
+            clr_trmt_strt = 1'b0;
             state_nxt = IDLE;
 
             case(state)
@@ -190,7 +194,23 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
                     else
                         state_nxt = TMIT;
                 end
+                B_P: begin
+                    state_nxt = B_P;
+                    if (B_P_end) begin
+                        clr_SCNT = 1;
+                        state_nxt = WAIT;
+                        clr_trmt_strt = 1'b1;
+                    end
+                end
+                WAIT: begin
+                    state_nxt = WAIT;
+                    if (SCLK == 1'b1) begin
+                        state_nxt = IDLE;
+                        set_done = 1'b1;
+                    end
+                end
                 // B_P state, enter this state when SCLK = ~1_0000
+                // todo add state
                 default: begin
                     if(B_P_end) begin
                         state_nxt = IDLE;
