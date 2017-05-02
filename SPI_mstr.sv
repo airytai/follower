@@ -9,11 +9,14 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     output SCLK, MOSI;
     input MISO;
 
-    typedef enum reg[1:0] {IDLE, SKIP_1st_fall, TMIT, B_P, WAIT} state_t;
+    typedef enum reg[2:0] {IDLE, SKIP_1st_fall, TMIT, B_P, WAIT} state_t;
     state_t state, state_nxt;
 
     reg [4:0] index_cnt; // 5 bits so that we can reach 16
     reg shift, shift_cmd;
+    reg set_dummy_finish;
+    reg clr_dummy_finish;
+    reg dummy_finish;
     // create a counter to count the shift index (5 bits)
     // increment when shift is asserted
     // reset when SS_n is high
@@ -21,7 +24,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
         begin
             if(!rst_n)
                 index_cnt <= 5'h00; // 0_0000
-            else if(SS_n)
+            else if(SS_n || set_dummy_finish)
                 index_cnt <= 5'h00; // reset when transmission end
             else if(shift)
                 index_cnt <= index_cnt + 1'b1;
@@ -129,8 +132,15 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     // state machine set set_done, when &SCLK_cnt[4:3] = 1, take only the first two bits
     // next clk, state go to IDLE, as well as assert done,
     // next clk, SS_n clear
-
-
+    
+    always@(posedge clk, negedge rst_n)
+        begin
+            if(!rst_n || clr_dummy_finish) begin
+                dummy_finish <= 1'b0;
+            end else if(set_dummy_finish) begin
+                dummy_finish <= 1'b1;
+            end
+        end
     // MOSI
     // shift cmd for MOSI 
     // shift when shift_cmd is asserted
@@ -170,6 +180,8 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
             clr_SCNT = 1'b0;
             clr_trmt_strt = 1'b0;
             state_nxt = IDLE;
+            clr_dummy_finish = 1'b0;
+            set_dummy_finish = 1'b0;
 
             case(state)
                 IDLE: begin
@@ -205,19 +217,16 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
                 WAIT: begin
                     state_nxt = WAIT;
                     if (SCLK == 1'b1) begin
-                        state_nxt = IDLE;
-                        set_done = 1'b1;
+                        if(dummy_finish) begin
+                            state_nxt = IDLE;
+                            set_done = 1'b1;
+                            clr_dummy_finish = 1'b1;
+                        end
+                        else begin
+                            set_dummy_finish = 1'b1;
+                            state_nxt = SKIP_1st_fall; // start the second transaction
+                        end
                     end
-                end
-                // B_P state, enter this state when SCLK = ~1_0000
-                // todo add state
-                default: begin
-                    if(B_P_end) begin
-                        state_nxt = IDLE;
-                        set_done = 1'b1; // which set done, then set trmt_strt, then set SS_n
-                    end
-                    else
-                        state_nxt = B_P;
                 end
             endcase
         end
