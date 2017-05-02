@@ -38,7 +38,7 @@ module pwm_10(duty, clk, rst_n, PWM_sig);
 
             if(cnt == duty)
                 cnt_rst = 1'b1;
-            else if(cnt == 10'b0)
+            else if(cnt == 10'b11_1111_1111)
                 cnt_set = 1'b1;
         end
     // implement the combinational logic for set, reset, or recirulate

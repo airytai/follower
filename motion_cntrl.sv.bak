@@ -304,16 +304,14 @@ always_comb begin
 			// Accum = Fwd - Pcomp
 			src1sel = 4;
 			src0sel = 3;
-			sub = 1;
 			dst2Accum = 1;
 			next_state = MRT_R2;
 		end
 		MRT_R2: begin
-			// rht_reg = Accum -“ Icomp
+			// rht_reg = Accum â€“ Icomp
 			saturate  = 1;
 			src1sel = 0;
 			src0sel = 2;
-			sub = 1;
 			dst2rht = 1;
 			next_state = MRT_L1;
 		end
@@ -328,7 +326,7 @@ always_comb begin
 			// lft_reg = Accum + Icomp
 			saturate  = 1;
 			src1sel = 0;
-			src0sel = 2;
+			src0sel = 3;
 			dst2lft = 1;
 			next_state = RESET;
 		end

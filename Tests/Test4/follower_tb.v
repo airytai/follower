@@ -110,7 +110,7 @@ initial begin
   else
 	  $display("YAHOO! Test4 passed");
 
-  //$finish;
+  $finish;
 end
 
 always

@@ -132,10 +132,10 @@ module ADC128S(clk,rst_n,SS_n,SCLK,MISO,MOSI);
           else nstate = INIT_LD;
         end
 		WAIT16 : begin
-		  en_cnt = SCLK_fall | &cntr[3:0];
+		  en_cnt = SCLK_fall;
 		  inc_ptr = &cntr;		// every two 16-bit transactions increment pointer
 		  shift = SCLK_rise;
-		  if (SS_n)
+		  if (&cntr)
 		    begin
 		      update_ch = 1;
 		      nstate =INIT_LD;

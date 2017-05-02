@@ -204,7 +204,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
                 TMIT: begin
                     shift = SCLK_rise;
                     shift_cmd = SCLK_fall;
-                    if(index_cnt == 16)
+                    if(index_cnt == 15)
                         state_nxt = B_P;
                     else
                         state_nxt = TMIT;

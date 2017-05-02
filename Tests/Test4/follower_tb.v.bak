@@ -41,7 +41,6 @@ module ADC128S(clk,rst_n,SS_n,SCLK,MISO,MOSI);
   
   wire [15:0] shft_data;
   wire SCLK_fall;
-  wire SCLK_rise;
   
   //// Implement falling edge detection of SCLK ////
   always_ff @(posedge clk, negedge rst_n)
@@ -60,7 +59,6 @@ module ADC128S(clk,rst_n,SS_n,SCLK,MISO,MOSI);
   // then a negative edge of SCLK has occurred.    //
   //////////////////////////////////////////////////
   assign SCLK_fall = ~SCLK_ff1 & SCLK_ff2;
-  assign SCLK_rise = SCLK_ff1 & ~SCLK_ff2;
 
   //// Infer counter for position in transaction ////
   always_ff @(posedge clk, negedge rst_n)
@@ -134,12 +132,12 @@ module ADC128S(clk,rst_n,SS_n,SCLK,MISO,MOSI);
 		WAIT16 : begin
 		  en_cnt = SCLK_fall | &cntr[3:0];
 		  inc_ptr = &cntr;		// every two 16-bit transactions increment pointer
-		  shift = SCLK_rise;
-		  if (SS_n)
+		  shift = SCLK_fall;
+		  if (&cntr[3:0])
 		    begin
 		      update_ch = 1;
 		      nstate =INIT_LD;
-			  incr_option1_cnt =1;
+                      incr_option1_cnt =1;
 			end
 		  else if (SS_n)
 		    nstate = IDLE;
@@ -168,4 +166,3 @@ module ADC128S(clk,rst_n,SS_n,SCLK,MISO,MOSI);
 
 endmodule  
   
-
