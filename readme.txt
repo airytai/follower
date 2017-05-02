@@ -1,6 +1,6 @@
 clone the git repository, for modelsim, add all the .s or .sv file.
 
-current stage: pass all the test except 4.
+current stage: pass all.
 for each test, need to update both analog.data and follower_tb.v.
 
 file:
@@ -47,6 +47,9 @@ haven't made editing and testing to fix the problem.
 
 ex10——————————
 demo 2 not succeed
+
+ex08——————————
+some combine of blocking and non-blocking assignment.
 
 Clear Up Step:
 change all decimal to formated to reduce design area (e.g. 4 -> 4'h4)

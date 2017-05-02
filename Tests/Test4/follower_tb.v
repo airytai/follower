@@ -98,7 +98,7 @@ initial begin
   repeat (18000) @(posedge clk);
   if (~(fwd_lft & rev_rht & ~fwd_rht & ~rev_lft)) begin
     $display("ERROR: Should be full left turn now");
-	//$finish;
+	$finish;
   end
 
   if ((duty_in<8'h80) || (duty_in>8'hc0) || (duty_mid<8'h80) || (duty_mid>8'hc0) ||

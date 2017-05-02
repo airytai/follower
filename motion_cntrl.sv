@@ -39,7 +39,7 @@ localparam DUTY_CYCLE = 8'h8C;
 
 reg signed [15:0] Pcomp; // Accum: Accum for error build-up; Pcomp: P component of PI control
 reg [13:0] Pterm; // P term in the PI control
-reg [11:0] Icomp, Error, Intgrl;
+reg signed [11:0] Icomp, Error, Intgrl;
 reg [11:0] Iterm;
 reg [2:0] src0sel, src1sel; // input signal with 3 bit width, used for source selection in MUX 0 and 1
 reg multiply, sub, mult2, mult4, saturate; 
@@ -51,7 +51,6 @@ reg waitcounter;
 reg clr_waitcounter;
 reg set_waitcounter;
 reg clr_int_dec;
-reg set_int_dec;
 
 // A2D_intf iDUT_A2D_intf( .clk(clk), .rst_n(rst_n), .strt_cnv(strt_cnv), .cnv_cmplt(cnv_cmplt), .chnnl(chnnl), .res(res), .a2d_SS_n(a2d_SS_n), .SCLK(SCLK), .MOSI(MOSI), .MISO(MISO));
 // ADC128S iDUT_ADC128S( .clk(clk), .rst_n(rst_n), .SS_n(a2d_SS_n), .SCLK(SCLK), .MISO(MISO), .MOSI(MOSI));
@@ -126,7 +125,6 @@ always_comb begin
 	//default outputs// 
 	clr_waitcounter = 0;
 	set_waitcounter = 0;
-	set_int_dec = 1'b0;
 	strt_cnv=0;
 	intimer1=0;
 	intimer2=0;
@@ -268,7 +266,6 @@ always_comb begin
 			saturate = 1;
 			src1sel = 3;
 			src0sel = 1;
-			set_int_dec = 1'b1;
 			next_state = ITERM;
 			clr_waitcounter = 1; // for multiplicate
 			// do we need to store Intgrl anywhere?
@@ -309,7 +306,7 @@ always_comb begin
 			next_state = MRT_R2;
 		end
 		MRT_R2: begin
-			// rht_reg = Accum -“ Icomp
+			// rht_reg = Accum -ï¿½ Icomp
 			saturate  = 1;
 			src1sel = 0;
 			src0sel = 2;
@@ -345,6 +342,8 @@ always @(posedge clk, negedge rst_n) begin
 		Pterm = 14'h3680;
 		Iterm = 12'h500;
 	end
+	else if(state == RESET)
+		Accum = 1'b0;
 	else if(dst2Accum)
 		Accum = dst;
 	else if(dst2Err)
@@ -386,7 +385,7 @@ end
 always @(posedge clk, negedge rst_n) begin
 	if(!rst_n || clr_int_dec) begin
 		int_dec <= 1'b0;
-	end else if(set_int_dec)
+	end else if(next_state == INTG)
 		int_dec <= int_dec + 1'b1;
 end
 
