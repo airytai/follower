@@ -232,5 +232,3 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
         end
 
 endmodule
-
-

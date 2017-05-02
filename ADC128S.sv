@@ -1,4 +1,5 @@
 module ADC128S(clk,rst_n,SS_n,SCLK,MISO,MOSI);
+
   //////////////////////////////////////////////////|
   // Model of a National Semi Conductor ADC128S    ||
   // 12-bit A2D converter.  NOTE: this model reads ||
@@ -15,65 +16,85 @@ module ADC128S(clk,rst_n,SS_n,SCLK,MISO,MOSI);
   input SCLK;			// Serial clock
   input MOSI;			// serial data in from master
   
-  output MISO;			// serial data out to master
-
-  reg [11:0] analog_mem[0:12'hb3f];	// holds representation of analog data for CH0 - CH7 (8 bits) for 8192 (12 bits) sets.
+  output MISO;			 // serial data out to master
   
-  wire [15:0] A2D_data,cmd;
-  wire rdy_rise, rdy;
-	
-  typedef enum reg {FIRST,SECOND} state_t;
+  reg [11:0] analog_mem[0:65535];	// holds representation of analog data for CH0 - CH7 for 8192 sets.
   
-  state_t state,nxt_state;
-  
+  typedef enum reg[1:0] {IDLE,INIT_LD,WAIT16} state_t;
   ///////////////////////////////////////////////
   // Registers needed in design declared next //
   /////////////////////////////////////////////
-  reg rdy_ff;				// used for edge detection on rdy
-  reg [12:0] ptr;			// combined with channel to form pointer into analog_mem
+  state_t state,nstate;
+  reg [15:0] shft_reg;		// main SPI shift register
+  reg [4:0] cntr;			// counter to keep track of position in transaction
+  reg [15:0] ptr;			// address pointer into array that contains analog values
   reg [2:0] channel;		// pointer to last channel specified for A2D conversion to be performed on.
-  
+  reg SCLK_ff1,SCLK_ff2;	// used for falling edge detection of SCLK
+ reg option1_count; 
+
+ logic incr_option1_cnt;
   /////////////////////////////////////////////
-  // SM outputs declared as type logic next //
+  // SM outputs delcared as type logic next //
   ///////////////////////////////////////////
+  logic ld_shft_reg, shift, clr_cnt, en_cnt;
   logic update_ch, inc_ptr;
-
-  ////////////////////////////////
-  // Instantiate SPI interface //
-  //////////////////////////////
-  SPI_ADC128S iSPI(.clk(clk),.rst_n(rst_n),.SS_n(SS_n),.SCLK(SCLK),.MISO(MISO),
-                 .MOSI(MOSI),.A2D_data(A2D_data),.cmd(cmd),.rdy(rdy));
-
-  //// ptr is pointer to next data ////
-  /// set...next set of 8 channels ////  
+  
+  wire [15:0] shft_data;
+  wire SCLK_fall;
+  
+  //// Implement falling edge detection of SCLK ////
   always_ff @(posedge clk, negedge rst_n)
     if (!rst_n)
-	  ptr <= 13'h0000;
+	  begin
+	    SCLK_ff1 <= 1'b1;
+	    SCLK_ff2 <= 1'b1;
+	  end
+	else
+	  begin
+	    SCLK_ff1 <= SCLK;
+		SCLK_ff2 <= SCLK_ff1;
+	  end  
+  /////////////////////////////////////////////////////
+  // If SCLK_ff2 is still high, but SCLK_ff1 is low //
+  // then a negative edge of SCLK has occurred.    //
+  //////////////////////////////////////////////////
+  assign SCLK_fall = ~SCLK_ff1 & SCLK_ff2;
+
+  //// Infer counter for position in transaction ////
+  always_ff @(posedge clk, negedge rst_n)
+    if (!rst_n)
+	  cntr <= 5'h00;
+	else if (clr_cnt)
+	  cntr <= 5'h00;
+	else if (en_cnt)
+	  cntr <= cntr + 1;
+
+  //// Infer address pointer next ////	  
+  always_ff @(posedge clk, negedge rst_n)
+    if (!rst_n)
+	  ptr <= 16'h0000;
 	else if (inc_ptr)
-	  ptr <= ptr + 1'b1;
+	  ptr <= ptr + 1;
+
+  //// Infer main SPI shift register ////
+  always_ff @(posedge clk)
+    if (ld_shft_reg)
+	  shft_reg <= shft_data;
+	else if (shift)
+	  shft_reg <= {shft_reg[14:0],MOSI};
 	  
-  //// channel pointer ////	  
   always_ff @(posedge clk, negedge rst_n)
     if (!rst_n)
 	  channel <= 3'b000;
 	else if (update_ch)
-	  channel <= cmd[13:11];
-	  
-  //// Infer state register next ////
-  always_ff @(posedge clk, negedge rst_n)
-    if (!rst_n)
-	  state <= FIRST;
-	else
-	  state <= nxt_state;
-	  
-  //// positive edge detection on rdy ////
-  always_ff @(posedge clk, negedge rst_n)
-    if (!rst_n)
-	  rdy_ff <= 1'b0;
-	else
-	  rdy_ff <= rdy;
-  assign rdy_rise = rdy & ~rdy_ff;
+	  channel <= shft_reg[13:11];
   
+  //// Infer state register next ////
+  always @(posedge clk, negedge rst_n)
+    if (!rst_n)
+	  state <= IDLE;
+	else
+	  state <= nstate;
 
   //////////////////////////////////////
   // Implement state tranisiton logic //
@@ -83,32 +104,65 @@ module ADC128S(clk,rst_n,SS_n,SCLK,MISO,MOSI);
       //////////////////////
       // Default outputs //
       ////////////////////
+	  ld_shft_reg = 0;
+      shift = 0;
+      clr_cnt = 0;
+      en_cnt = 0;
       update_ch = 0;
-	  inc_ptr = 0;
-      nxt_state = FIRST;	  
-
+      inc_ptr = 0;
+      nstate = IDLE;	  
+      incr_option1_cnt = 0;
       case (state)
-        FIRST : begin
-          if (rdy_rise) begin
-		    update_ch = 1;
-            //nxt_state = SECOND;
-            nxt_state = FIRST;
+        IDLE : begin
+          if (!SS_n) begin
+		    clr_cnt = option1_count;
+            nstate = INIT_LD;
           end
         end
-		SECOND : begin		
-		  if (rdy_rise) begin
-		    inc_ptr = 1;
-			nxt_state = FIRST;
-		  end else
-		    nxt_state = SECOND;
+        INIT_LD : begin
+          if (SCLK_fall) 
+            begin
+              ld_shft_reg = 1;
+              nstate = WAIT16;
+            end
+		  else if (SS_n)
+		    nstate = IDLE;
+          else nstate = INIT_LD;
+        end
+		WAIT16 : begin
+		  en_cnt = SCLK_fall | &cntr[3:0];
+		  inc_ptr = &cntr;		// every two 16-bit transactions increment pointer
+		  shift = SCLK_fall;
+		  if (&cntr[3:0])
+		    begin
+		      update_ch = 1;
+		      nstate =INIT_LD;
+                      incr_option1_cnt =1;
+			end
+		  else if (SS_n)
+		    nstate = IDLE;
+		  else
+		    nstate = WAIT16;
 		end
       endcase
     end
+
+
+  always_ff @(posedge clk, negedge rst_n) begin
+    if (~rst_n)
+      option1_count <= 1'b1;
+    else if (incr_option1_cnt)
+      option1_count <= ~ option1_count;
+    else 
+      option1_count <= option1_count;
+  end
+  ///// MISO is shift_reg[15] with a tri-state ///////////
+  assign MISO = (SS_n) ? 1'bz : shft_reg[15];
   
   initial
     $readmemh("analog.dat",analog_mem);		// read in representation of analog data
 	
-  assign A2D_data = {4'b0000,analog_mem[channel]};
+  assign shft_data = {4'b0000,analog_mem[ptr*8+channel]};
 
 endmodule  
   
