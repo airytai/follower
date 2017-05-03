@@ -63,17 +63,17 @@ module uart_rcv(clk, rst_n, RX, rx_rdy, rx_data, clr_rx_rdy);
     always @(posedge clk or negedge rst_n)
         if (!rst_n) begin
             baud_cnt <= 12'h5D3;		// (4095 - 2604) = 0x5D3
-            half_baud = 1'b0;
+            half_baud <= 1'b0;
         end
         else if (strt_rcv || shift) begin
             baud_cnt <= 12'h5D3;		// reset when baud count indicates 19200 baud
-            half_baud = 1'b0;
+            half_baud <= 1'b0;
         end
         else if (receiving) begin
             baud_cnt <= baud_cnt+1;		// only burn power incrementing if tranmitting
-            half_baud = 1'b0;
+            half_baud <= 1'b0;
             if(baud_cnt == 12'hAE9 && bit_cnt == 0)            // (4095 - 1302) = AE9
-                half_baud = 1'b1;
+                half_baud <= 1'b1;
         end
         
     // state machine
