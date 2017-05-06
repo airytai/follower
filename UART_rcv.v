@@ -10,13 +10,13 @@ module uart_rcv(clk, rst_n, RX, rx_rdy, rx_data, clr_rx_rdy);
     reg [9:0] shift_reg; // 10-bit shifter
     reg [3:0] bit_cnt; // 4-bit bit counter
     reg [11:0] baud_cnt; // baud rate counter
-    reg rcv_done; // set/reset flop
 
     reg half_baud; // count for half baud time
 
     //reg shift_out;
 
     reg strt_rcv, receiving; // assigned in state machine
+    reg rcv_done;
 
     wire shift;
 
@@ -49,15 +49,6 @@ module uart_rcv(clk, rst_n, RX, rx_rdy, rx_data, clr_rx_rdy);
             shift_reg <= {RX, shift_reg[9:1]};
             //shift_out <= shift_reg[0];
         end
-            
-    // make rcv_done a set/reset flop
-    always @(posedge clk or negedge rst_n)
-        if (!rst_n)
-            rcv_done <= 1'b0;
-        else if (strt_rcv)
-            rcv_done <= 1'b0;
-        else if (bit_cnt==4'b1011)
-            rcv_done <= 1'b1;
 
     // Infer baud_cnt
     always @(posedge clk or negedge rst_n)
@@ -85,6 +76,7 @@ module uart_rcv(clk, rst_n, RX, rx_rdy, rx_data, clr_rx_rdy);
             strt_rcv  = 0;
             receiving = 0;
             nxt_state = IDLE;	// always a good idea to default to IDLE state
+            rcv_done = 1'b0;
             
             case (state)
             IDLE : begin
@@ -97,16 +89,17 @@ module uart_rcv(clk, rst_n, RX, rx_rdy, rx_data, clr_rx_rdy);
             end
             default : begin		// this is TX state
                 receiving = 1;
-		if (bit_cnt==4'b1011)
+		if (bit_cnt==4'b1010) begin
+                    rcv_done = 1'b1;
                     nxt_state = IDLE;
-                else
+                end else
                     nxt_state = TX;
                 
             end
             endcase
         end
 
-    assign shift = (&baud_cnt) ? 1'b1 : ((half_baud)? 1'b1 : 1'b0);
+    assign shift = ((bit_cnt == 4'b1010)  ?  1'b0 : (  (&baud_cnt) ? 1'b1 : ((half_baud)? 1'b1 : 1'b0)  )    );
     assign rx_data = shift_reg[8:1];
-    assign rx_rdy = (clr_rx_rdy || strt_rcv) ? 1'b0 : ((bit_cnt == 4'b1010) ? 1'b1 : 1'b0);
+    assign rx_rdy = (clr_rx_rdy || strt_rcv) ? 1'b0 : ((rcv_done) ? 1'b1 : 1'b0);
 endmodule

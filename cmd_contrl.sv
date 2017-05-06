@@ -45,7 +45,6 @@ end
 
 // Next state logic
 always_comb begin
-	clr_cmd_rdy = 0;
 	clr_ID_vld  = 0;
 	movingCase  = 0;
 
@@ -126,5 +125,15 @@ assign buzz_n = (buzz_enable) ? ~buzz : buzz;
 
 // Buzzer enable logic
 assign buzz_enable = in_transit && (!OK2Move);
+
+always @(posedge clk, negedge rst_n) begin
+	if(!rst_n)
+		clr_cmd_rdy = 1'b0;
+	else if(cmd_rdy)
+		clr_cmd_rdy = 1'b1;	
+	else 
+		clr_cmd_rdy = 1'b0;
+end
+
 
 endmodule
