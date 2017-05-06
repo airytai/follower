@@ -18,8 +18,10 @@ module motor_cntrl(lft, rht, fwd_lft, rev_lft, fwd_rht, rev_rht, rst_n, clk);
     assign brake_rht = ~|rht;
 
 	// Absolute value of the duty cycle
-	assign duty_lft = (sign_lft) ? (~lft[9:0]) : (lft[9:0]);
-	assign duty_rht = (sign_rht) ? (~rht[9:0]) : (rht[9:0]);
+	// assign duty_lft = (sign_lft) ? (~lft[9:0]) : (lft[9:0]);
+	// assign duty_rht = (sign_rht) ? (~rht[9:0]) : (rht[9:0]);
+    assign duty_lft = (lft[10]) ? ((lft[9:0]==10'h000) ? 10'h3ff : (11'h400 - lft[9:0])) : lft[9:0];
+    assign duty_rht = (rht[10]) ? ((rht[9:0]==10'h000) ? 10'h3ff : (11'h400 - rht[9:0])) : rht[9:0];
 
     // pipe
     pwm_10 iDUT_lft(.duty(duty_lft[9:0]), .clk(clk), .rst_n(rst_n), .PWM_sig(PWM_sig_lft));

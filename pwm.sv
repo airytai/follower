@@ -22,7 +22,7 @@ module pwm(duty, clk, rst_n, PWM_sig);
     ////////////////////////////////////
     always @(posedge clk)
         if(!rst_n)
-            cnt <= 8'b0000_0000;
+            cnt <= 8'h00;
         else
             cnt <= nxt_cnt;
 
@@ -35,11 +35,10 @@ module pwm(duty, clk, rst_n, PWM_sig);
             // default set and rst signal to avoid latches
             cnt_set = 1'b0;
             cnt_rst = 1'b0;
-
-            if(cnt == duty)
-                cnt_rst = 1'b1;
-            else if(cnt == 8'b1111_1111)
+            if(cnt == 8'hff)
                 cnt_set = 1'b1;
+            else if(cnt == duty)
+                cnt_rst = 1'b1;
         end
     // implement the combinational logic for set, reset, or recirulate
     ///////////////////////////////////////////////////

@@ -22,7 +22,7 @@ module pwm_10(duty, clk, rst_n, PWM_sig);
     ////////////////////////////////////
     always @(posedge clk)
         if(!rst_n)
-            cnt <= 10'b00_0000_0000;
+            cnt <= 10'h0;
         else
             cnt <= nxt_cnt;
 
@@ -36,10 +36,10 @@ module pwm_10(duty, clk, rst_n, PWM_sig);
             cnt_set = 1'b0;
             cnt_rst = 1'b0;
 
-            if(cnt == duty)
-                cnt_rst = 1'b1;
-            else if(cnt == 10'b0)
+            if(cnt == 10'h3ff)
                 cnt_set = 1'b1;
+            else if(cnt == duty)
+                cnt_rst = 1'b1;
         end
     // implement the combinational logic for set, reset, or recirulate
     ///////////////////////////////////////////////////
