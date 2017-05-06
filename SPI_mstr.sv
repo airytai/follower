@@ -44,8 +44,10 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     // assign SCLK
     always@(posedge clk, negedge rst_n)
         begin
-            if(!rst_n || clr_SCNT)
+            if(!rst_n)
                 SCLK_cnt <= 5'h10; // 1_0000, decimal 16
+			   else if (clr_SCNT)
+					 SCLK_cnt <= 5'h10; // 1_0000, decimal 16
             else if( (state != WAIT) && SS_n)
                 SCLK_cnt <= 5'h10; // not enabled if SS_n high
             else
@@ -136,11 +138,12 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     
     always@(posedge clk, negedge rst_n)
         begin
-            if(!rst_n || clr_dummy_finish) begin
+            if(!rst_n) 
                 dummy_finish <= 1'b0;
-            end else if(set_dummy_finish) begin
+			   else if (clr_dummy_finish)
+					 dummy_finish <= 1'b0;
+            else if(set_dummy_finish)
                 dummy_finish <= 1'b1;
-            end
         end
     // MOSI
     // shift cmd for MOSI 
@@ -171,7 +174,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     // B_P (back_porch): SCLK should be low when enter this state,
     // wait for SCLK counter [4:3] AND = 1, go IDLE
 
-    always@(wrt, SCLK_fall, SCLK_rise, state, index_cnt, B_P_end)
+    always@(wrt, SCLK_fall, SCLK_rise, state, index_cnt, B_P_end, SCLK, dummy_finish)
         begin
             // default
             shift = 1'b0;

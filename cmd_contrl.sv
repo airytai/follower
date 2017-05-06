@@ -24,6 +24,8 @@ localparam  BUZZ_MAX  = 16'h30D4;   // Counter value used for a 4kHz signal
 
 reg [7:0]	dest_ID;		// The barcode ID that the vehicle wants to stop at
 
+reg [2:0]	movingCase;
+
 // Possible states, current state, and next state
 typedef enum reg {NOT_MOVING, MOVING} state_t;
 state_t state;
@@ -45,6 +47,7 @@ end
 always_comb begin
 	clr_cmd_rdy = 0;
 	clr_ID_vld  = 0;
+	movingCase  = 0;
 
 	case (state)
 		NOT_MOVING : begin
@@ -57,20 +60,25 @@ always_comb begin
 		MOVING : begin
 			if (cmd_rdy && (cmd[7:6] == GO_CMD)) begin
 				next_state = MOVING;
+				movingCase = 3'h1;
 			end
 			else if (cmd_rdy && (cmd[7:6] == STOP_CMD)) begin
 				next_state = NOT_MOVING;
+				movingCase = 3'h2;
 			end
 			else if (!ID_vld) begin
 				next_state = MOVING;
+				movingCase = 3'h3;
 			end
 			else if (ID == dest_ID) begin
 				clr_ID_vld = 1;
 				next_state = NOT_MOVING;
+				movingCase = 3'h4;
 			end
 			else begin
 				clr_ID_vld = 1;
 				next_state = MOVING;
+				movingCase = 3'h5;
 			end
 		end
 	endcase
@@ -100,8 +108,7 @@ always @(posedge clk, negedge rst_n) begin
 		buzz_cnt <= BUZZ_INIT;
 	end
 	else begin
-		if (buzz_cnt == BUZZ_MAX)			// Prevent overflow
-			buzz_cnt = BUZZ_INIT;
+		
 		if (buzz_enable)
 			buzz_cnt <= buzz_cnt + 1'b1;
 
@@ -109,6 +116,8 @@ always @(posedge clk, negedge rst_n) begin
 			buzz <= 1'b1;
 		else
 			buzz <= 1'b0;
+		if (buzz_cnt == BUZZ_MAX)			// Prevent overflow
+			buzz_cnt <= BUZZ_INIT;
 
 		
 	end

@@ -90,17 +90,21 @@ always_ff @(posedge clk, negedge rst_n) begin
 end
 
 always @(posedge clk, negedge rst_n) begin
-	if(!rst_n || !rst_counter1_n)
+	if(!rst_n)
+		counter1<=12'h000;
+	else if (!rst_counter1_n)
 		counter1<=12'h000;
 	else if(intimer1)
-		counter1=counter1+1;
+		counter1<=counter1+1'b1;
 end
 
 always @(posedge clk, negedge rst_n) begin
-	if(!rst_n || !rst_counter2_n)
+	if(!rst_n)
+		counter2<=5'd0;
+	else if(!rst_counter2_n)
 		counter2<=5'd0;
 	else if(intimer2)
-		counter2=counter2+1;
+		counter2<=counter2+1'b1;
 end
 
 assign timer2 = &counter2;
@@ -114,43 +118,43 @@ always_ff @(posedge clk, negedge rst_n) begin
 		state <= next_state;
 end
 
-always_comb begin
+always@(rst_n, state, go, timer1, chnnlcounter, cnv_cmplt, chnnl, timer2, waitcounter) begin // todo
 	if(!rst_n)begin
-		chnnlcounter = 0;
-		chnnl = 0;
+		chnnlcounter = 1'b0;
+		chnnl = 1'b0;
 		rst_counter1_n = 1'b1;
 		rst_counter2_n = 1'b1;
 	end
 
 	//default outputs// 
-	clr_waitcounter = 0;
-	set_waitcounter = 0;
-	strt_cnv=0;
-	intimer1=0;
-	intimer2=0;
+	clr_waitcounter = 1'b0;
+	set_waitcounter = 1'b0;
+	strt_cnv=1'b0;
+	intimer1=1'b0;
+	intimer2=1'b0;
 	next_state=RESET;
 
-	multiply = 0;
-	sub = 0;
-	mult2 = 0;
-	mult4 = 0;
-	saturate = 0;
-	src0sel = 0;
-	src1sel = 0;
+	multiply = 1'b0;
+	sub = 1'b0;
+	mult2 = 1'b0;
+	mult4 = 1'b0;
+	saturate = 1'b0;
+	src0sel = 1'b0;
+	src1sel = 1'b0;
 
-	dst2Accum = 0;
-	dst2Err=0;
-	dst2Icmp=0;
-	dst2Pcmp=0;
-	dst2lft=0;
-	dst2rht=0;
+	dst2Accum = 1'b0;
+	dst2Err=1'b0;
+	dst2Icmp=1'b0;
+	dst2Pcmp=1'b0;
+	dst2lft=1'b0;
+	dst2rht=1'b0;
 	
 	// int_dec=0; // where could we set this
 	
 	case(state)
 		RESET: begin
-			chnnlcounter = 0;
-			chnnl = 0;
+			chnnlcounter = 1'b0;
+			chnnl = 1'b0;
 			if(go) begin
 		        next_state=TIMER1;				
 				// add code that Enables PWM and Enables timer
@@ -158,25 +162,25 @@ always_comb begin
 		end
 		TIMER1: begin
 			if(timer1)begin
-				strt_cnv = 1;
+				strt_cnv = 1'b1;
 				rst_counter1_n = 1'b0;
 				next_state = CONVCOMPLETE1;
 				// Enables PWM
-				if(chnnlcounter==0) begin
-					chnnl=1;
+				if(chnnlcounter==1'b0) begin
+					chnnl=1'b1;
 					// IR_in_en = pwm_output;
 				end
-				if(chnnlcounter==2) begin
-					chnnl=4;
+				if(chnnlcounter==2'b10) begin
+					chnnl=3'b100;
 					// IR_mid_en = pwm_output;
 				end
-				if(chnnlcounter==4)begin
-					chnnl=3;
+				if(chnnlcounter==3'b100)begin
+					chnnl=2'b11;
 					// IR_out_en = pwm_output;
 				end
 			end
 			else begin
-				intimer1=1; // start to count timer1
+				intimer1=1'b1; // start to count timer1
 				next_state=TIMER1;
 			end
 		end
@@ -186,19 +190,19 @@ always_comb begin
 				next_state = TIMER2;
 
 				// add code to perform one of the 3 calculations based on chnnl counter 
-				if(chnnl == 1) begin
-					dst2Accum = 1;
+				if(chnnl == 1'b1) begin
+					dst2Accum = 1'b1;
 				end
-				if(chnnl == 4) begin
-					mult2 = 1;
-					dst2Accum = 1;
+				if(chnnl == 3'b100) begin
+					mult2 = 1'b1;
+					dst2Accum = 1'b1;
 				end
-				if(chnnl == 3) begin
-					mult4 = 1;
-					dst2Accum = 1;
+				if(chnnl == 2'b11) begin
+					mult4 = 1'b1;
+					dst2Accum = 1'b1;
 				end
 				// clear timer
-				chnnlcounter=chnnlcounter+1;
+				chnnlcounter=chnnlcounter+1'b1;
 				
 			end
 			else
@@ -206,49 +210,49 @@ always_comb begin
 		end
 		TIMER2: begin
 			if(timer2)begin
-				strt_cnv = 1;
+				strt_cnv = 1'b1;
 				rst_counter2_n = 1'b0;
 				next_state = CONVCOMPLETE2;
 
-				if(chnnlcounter==1)begin
-					chnnl=0;
+				if(chnnlcounter==1'b1)begin
+					chnnl=1'b0;
 					// IR_in_en = pwm_output;
 				end
 	
-				if(chnnlcounter==3) begin
-					chnnl=2;
+				if(chnnlcounter==2'b11) begin
+					chnnl=2'b10;
 					// IR_mid_en = pwm_output;
 				end
-				if(chnnlcounter==5)begin
-					chnnl=7;
+				if(chnnlcounter==3'b101)begin
+					chnnl=3'b111;
 					// IR_out_en = pwm_output;
 					end
 			end
 			else begin
-				intimer2=1;
+				intimer2=1'b1;
 				next_state=TIMER2;
 			end
 		end
 		CONVCOMPLETE2: begin
 			if(cnv_cmplt) begin
-				chnnlcounter=chnnlcounter+1;
+				chnnlcounter=chnnlcounter+1'b1;
 				rst_counter2_n = 1'b1;
 				next_state=CHECK6;
 				// add code to perform one of the 3 calculations based on chnnl counter
-				if(chnnl == 0) begin
-					sub = 1;
-					dst2Accum = 1;
+				if(chnnl == 1'b0) begin
+					sub = 1'b1;
+					dst2Accum = 1'b1;
 				end
-				if(chnnl == 2) begin
-					sub = 1;
-					mult2 = 1;
-					dst2Accum = 1;
+				if(chnnl == 2'b10) begin
+					sub = 1'b1;
+					mult2 = 1'b1;
+					dst2Accum = 1'b1;
 				end
-				if(chnnl == 7) begin // Error= Accum - IR_out_lft*4
-					saturate = 1;
-					sub = 1;
-					mult4 = 1;
-					dst2Err = 1;
+				if(chnnl == 3'b111) begin // Error= Accum - IR_out_lft*4
+					saturate = 1'b1;
+					sub = 1'b1;
+					mult4 = 1'b1;
+					dst2Err = 1'b1;
 				end
 				// clear timer
 			end
@@ -256,93 +260,101 @@ always_comb begin
 				next_state=CONVCOMPLETE2;
 		end
 		CHECK6:
-			if(chnnlcounter==6) begin
-				chnnl = 6;
+			if(chnnlcounter==3'b110) begin
+				chnnl = 3'b110;
 				next_state=INTG; // go to integration state
 			end else begin
 				next_state=TIMER1; // otherwise count again
 				end
 		INTG: begin
-			saturate = 1;
-			src1sel = 3;
-			src0sel = 1;
+			saturate = 1'b1;
+			src1sel = 2'b11;
+			src0sel = 1'b1;
 			next_state = ITERM;
-			clr_waitcounter = 1; // for multiplicate
+			clr_waitcounter = 1'b1; // for multiplicate
 			// do we need to store Intgrl anywhere?
 		end
 		ITERM: begin
 			// Icomp = Iterm*Intgrl
-			src1sel = 1;
-			src0sel = 1;
-			dst2Icmp = 1;
-			multiply = 1;
+			src1sel = 1'b1;
+			src0sel = 1'b1;
+			dst2Icmp = 1'b1;
+			multiply = 1'b1;
 			if(waitcounter)  begin 
 				next_state = PTERM;
-				clr_waitcounter = 1; // reset waitcounter for next state
+				clr_waitcounter = 1'b1; // reset waitcounter for next state
 			end else begin
 				next_state = ITERM;
-				set_waitcounter = 1;
+				set_waitcounter = 1'b1;
 			end
 		end
 		PTERM: begin
 			// Pcomp = Error*Pterm
-			src1sel = 2;
-			src0sel = 4;
-			dst2Pcmp = 1;
-			multiply = 1;
+			src1sel = 2'b10;
+			src0sel = 3'b100;
+			dst2Pcmp = 1'b1;
+			multiply = 1'b1;
 			if(waitcounter)
 				next_state = MRT_R1;
 			else begin
 				next_state = PTERM;
-				set_waitcounter = 1;
+				set_waitcounter = 1'b1;
 			end
 		end
 		MRT_R1: begin
 			// Accum = Fwd - Pcomp
-			src1sel = 4;
-			src0sel = 3;
-			sub = 1;
-			dst2Accum = 1;
+			src1sel = 3'b100;
+			src0sel = 2'b11;
+			sub = 1'b1;
+			dst2Accum = 1'b1;
 			next_state = MRT_R2;
 		end
 		MRT_R2: begin
 			// rht_reg = Accum -� Icomp
-			saturate  = 1;
-			src1sel = 0;
-			src0sel = 2;
-			sub = 1;
-			dst2rht = 1;
+			saturate  = 1'b1;
+			src1sel = 1'b0;
+			src0sel = 2'b10;
+			sub = 1'b1;
+			dst2rht = 1'b1;
 			next_state = MRT_L1;
 		end
 		MRT_L1: begin
 			// Accum = Fwd + Pcomp
-			src1sel = 4;
-			src0sel = 3;
-			dst2Accum = 1;
+			src1sel = 3'b100;
+			src0sel = 2'b11;
+			dst2Accum = 1'b1;
 			next_state = MRT_L2;
 		end
 		MRT_L2: begin
 			// lft_reg = Accum + Icomp
-			saturate  = 1;
-			src1sel = 0;
-			src0sel = 2;
-			dst2lft = 1;
+			saturate  = 1'b1;
+			src1sel = 1'b0;
+			src0sel = 2'b10;
+			dst2lft = 1'b1;
 			next_state = RESET;
 		end
 	endcase 
 end
 
 always @(posedge clk, negedge rst_n) begin
-	if(!rst_n || !go) begin 
-		Accum = 0;
-		Error = 0;
-		Intgrl = 0;
-		Icomp = 0;
-		Pcomp = 0;
+	if(!rst_n) begin 
+		Accum = 1'b0;
+		Error = 1'b0;
+		Intgrl = 1'b0;
+		Icomp = 1'b0;
+		Pcomp = 1'b0;
 		Pterm = 14'h3680;
 		Iterm = 12'h500;
 	end
-	else if(state == RESET)
+	else if(!go) begin
+		Accum = 1'b0;
+		Error = 1'b0;
+		Intgrl = 1'b0;
+		Icomp = 1'b0;
+		Pcomp = 1'b0;
+		Pterm = 14'h3680;
+		Iterm = 12'h500;
+	end else if(state == RESET)
 		Accum = 1'b0;
 	else if(dst2Accum)
 		Accum = dst;
@@ -358,14 +370,14 @@ end
 
 always @(posedge clk, negedge rst_n) begin
 	if(!rst_n) begin
-		IR_in_en = 0;
-		IR_mid_en = 0;
-		IR_out_en = 0;
-	end else if(chnnlcounter==0 || chnnlcounter==1)
+		IR_in_en = 1'b0;
+		IR_mid_en = 1'b0;
+		IR_out_en = 1'b0;
+	end else if(chnnlcounter==1'b0 || chnnlcounter==1'b1)
 		IR_in_en = pwm_output;
-	else if(chnnlcounter==2 || chnnlcounter==3)
+	else if(chnnlcounter==2'b10 || chnnlcounter==2'b11)
 		IR_mid_en = pwm_output;
-	else if(chnnlcounter==4 || chnnlcounter==6)
+	else if(chnnlcounter==3'b100 || chnnlcounter==3'b110)
 		IR_out_en = pwm_output;
 end
 
@@ -383,9 +395,11 @@ always @(posedge clk, negedge rst_n) begin
 end
 
 always @(posedge clk, negedge rst_n) begin
-	if(!rst_n || clr_int_dec) begin
+	if(!rst_n)
 		int_dec <= 1'b0;
-	end else if(next_state == INTG)
+	else if(clr_int_dec)
+		int_dec <= 1'b0;
+	else if(next_state == INTG)
 		int_dec <= int_dec + 1'b1;
 end
 

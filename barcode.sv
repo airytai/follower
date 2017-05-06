@@ -82,10 +82,11 @@ always@(posedge clk, negedge rst_n)
         begin
         if(!rst_n)
             ff_1 <= 1'b1;
-        else
+        else begin
             ff_1 <= BC;
             ff_2 <= ff_1;
             ff_logic <= ff_2;
+			end
         end
 
 assign falling_edge = !ff_2 & ff_logic;
@@ -126,7 +127,7 @@ always@(posedge clk, negedge rst_n) begin
     if(!rst_n)
         ID_reg <= 8'h00;
     else if(shift) // left shift
-        ID_reg <= {ID_reg, BC};
+        ID_reg <= {ID_reg[6:0], BC};
 end
 
 // initiate state transition
@@ -139,8 +140,10 @@ end
 
 // index_cnt to count number of BC shift in and latch the output if finish
 always@(posedge clk, negedge rst_n) begin
-    if (!rst_n || clr_cpt_value)
+    if (!rst_n)
         index_cnt <= 4'h0;
+	 else if (clr_cpt_value)
+		  index_cnt <= 4'h0;
     else if(shift)
         index_cnt <= index_cnt + 1'b1;
 end
@@ -150,21 +153,24 @@ end
 // clr_cnt asserted when in CAP state
 // if(cnt_match_cpt) assert clr_cnt to get the counter reset to 0
 // deassert the holder and restart the strt_cnt when falling edge detected
-always@(state, falling_edge, rising_edge, cnt_match_cpt, index_cnt) begin
+always@(state, falling_edge, rising_edge, cnt_match_cpt, index_cnt, rst_n, ID_reg) begin
     if (!rst_n) ID = 8'h0;
 
     // end_cpt = 1'b1; // default to end the capture
     // strt_cnt = 1'b0;
     compare = 1'b0;
     clr_cnt = 1'b0;
+	 set_cnt = 1'b0;
     clr_cpt_value = 1'b0; // asserted to clr the cpt value
     set_cpt_value = 1'b0; // asserted to set the cpt value
     strt_cpt = 1'b0; // default to no capture
     state_nxt = IDLE;
+
     
     case(state)
         IDLE: begin // waiting if BC keep high and start bit (low) never arrive
-	    set_cnt = 1'b0;
+	    
+				set_cnt = 1'b0;
             if(falling_edge) // see the starting bit falling edge
                 state_nxt = CAP; // go to capture state
         end
@@ -188,7 +194,7 @@ always@(state, falling_edge, rising_edge, cnt_match_cpt, index_cnt) begin
             end
             else if(cnt_match_cpt) begin
                 clr_cnt = 1'b1;
-		set_cnt = 1'b0;
+					 set_cnt = 1'b0;
                 state_nxt = SAMP;
             end
             else if(index_cnt == 4'h8) begin

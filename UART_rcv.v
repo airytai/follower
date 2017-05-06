@@ -37,7 +37,7 @@ module uart_rcv(clk, rst_n, RX, rx_rdy, rx_data, clr_rx_rdy);
         else if (strt_rcv)
             bit_cnt <= 4'b0000;
         else if (shift)
-            bit_cnt <= bit_cnt+1;
+            bit_cnt <= bit_cnt+1'b1;
 
     // Infer shift register
     always @(posedge clk or negedge rst_n)
@@ -70,7 +70,7 @@ module uart_rcv(clk, rst_n, RX, rx_rdy, rx_data, clr_rx_rdy);
             half_baud <= 1'b0;
         end
         else if (receiving) begin
-            baud_cnt <= baud_cnt+1;		// only burn power incrementing if tranmitting
+            baud_cnt <= baud_cnt+1'b1;		// only burn power incrementing if tranmitting
             half_baud <= 1'b0;
             if(baud_cnt == 12'hAE9 && bit_cnt == 0)            // (4095 - 1302) = AE9
                 half_baud <= 1'b1;

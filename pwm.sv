@@ -27,7 +27,7 @@ module pwm(duty, clk, rst_n, PWM_sig);
             cnt <= nxt_cnt;
 
     always @(*)
-	nxt_cnt = cnt + 1;
+	nxt_cnt = cnt + 1'b1;
     
     // check whether the count cycle meet the duty cycle
     always @(duty or cnt)
