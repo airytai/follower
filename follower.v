@@ -28,6 +28,8 @@ module Follower(clk,RST_n,led,a2d_SS_n,SCLK,MISO,MOSI,rev_rht,
   
   reg rst_ff_n,rst_n;
   reg OK2Move_ff1,OK2Move_ff2;
+
+  wire go;
   
   //////////////////////////////////////////////////////
   // Sync deassertion of rst_n with negedge of clock //

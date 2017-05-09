@@ -4,12 +4,12 @@ module motor_cntrl(lft, rht, fwd_lft, rev_lft, fwd_rht, rev_rht, rst_n, clk);
     input [10:0] lft, rht; // signed speed of left/right motor
     output reg fwd_lft, rev_lft, fwd_rht, rev_rht; // Forward/reverse PWM signal of left right motor
 
-    reg sign_lft, sign_rht; // the sign of the input speed
-    reg PWM_sig_lft, PWM_sig_rht; // PWM sign of left and right
-    reg brake_lft, brake_rht; // brake of left and right
+    wire sign_lft, sign_rht; // the sign of the input speed
+    wire PWM_sig_lft, PWM_sig_rht; // PWM sign of left and right
+    wire brake_lft, brake_rht; // brake of left and right
 
-	reg [9:0] duty_lft;
-	reg [9:0] duty_rht;
+	wire [9:0] duty_lft;
+	wire [9:0] duty_rht;
 
     // check the sign
     assign sign_lft = lft[10];

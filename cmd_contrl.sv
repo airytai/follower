@@ -11,13 +11,13 @@ input		ID_vld;			// A signal tto indicate the ID value is valid
 output reg	clr_ID_vld;		// Asserted to acknowledge the ID has been read
 
 input		OK2Move;		// Deasserted if the proximity sensor detects an obstacle
-output reg	in_transit;		// Asserted when the vehicle should be in transit
-output reg	go;				// Asserted when the vehicle should be moving (in_transit && OK2Move)
+output wire	in_transit;		// Asserted when the vehicle should be in transit
+output wire	go;				// Asserted when the vehicle should be moving (in_transit && OK2Move)
 
 output reg	buzz;           // Positive output for the 4kHz buzzer
-output reg	buzz_n;         // Negative output for the 4kHz buzzer
+output wire	buzz_n;         // Negative output for the 4kHz buzzer
 reg [15:0]  buzz_cnt;		// Counter for buzz signal
-reg         buzz_enable;	// Enable for the buzzer
+wire         buzz_enable;	// Enable for the buzzer
 
 localparam  BUZZ_INIT = 16'h00;     // Clears the buzzer counter
 localparam  BUZZ_MAX  = 16'h30D4;   // Counter value used for a 4kHz signal
@@ -27,16 +27,19 @@ reg [7:0]	dest_ID;		// The barcode ID that the vehicle wants to stop at
 reg [2:0]	movingCase;
 
 // Possible states, current state, and next state
-typedef enum reg {NOT_MOVING, MOVING} state_t;
+/*typedef enum reg {NOT_MOVING, MOVING} state_t;
 state_t state;
-state_t next_state;
+state_t next_state;*/
+localparam NOT_MOVING = 1'b0;
+localparam MOVING = 1'b1;
+reg state,next_state;
 
 // Commands this module cares about
 localparam GO_CMD = 2'b01;
 localparam STOP_CMD = 2'b00;
 
 // Set state to be the next state
-always_ff @(posedge clk, negedge rst_n) begin
+always@(posedge clk, negedge rst_n) begin
 	if (!rst_n)
 		state <= NOT_MOVING;
 	else
@@ -44,7 +47,7 @@ always_ff @(posedge clk, negedge rst_n) begin
 end
 
 // Next state logic
-always_comb begin
+always@(state, cmd_rdy, cmd, ID_vld, ID, dest_ID, rst_n) begin
 	clr_ID_vld  = 0;
 	movingCase  = 0;
 
@@ -87,7 +90,7 @@ always_comb begin
 end
 
 // Set the destination ID when cmd_rdy is asserted and the command is GO
-always_ff @(posedge clk, negedge rst_n) begin
+always@(posedge clk, negedge rst_n) begin
 	if (!rst_n)
 		dest_ID = 0;
 	else if (cmd_rdy && (cmd[7:6] == GO_CMD))

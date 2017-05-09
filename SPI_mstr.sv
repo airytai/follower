@@ -5,12 +5,18 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     input [15:0] cmd;
     output reg done;
     output [15:0] rd_data;
-    output reg SS_n;
+    output wire SS_n;
     output SCLK, MOSI;
     input MISO;
 
-    typedef enum reg[2:0] {IDLE, SKIP_1st_fall, TMIT, B_P, WAIT} state_t;
-    state_t state, state_nxt;
+    // typedef enum reg[2:0] {IDLE, SKIP_1st_fall, TMIT, B_P, WAIT} state_t;
+    // state_t state, state_nxt;
+    localparam IDLE = 3'b000;
+    localparam SKIP_1st_fall = 3'b001;
+    localparam TMIT = 3'b010;
+    localparam B_P = 3'b011;
+    localparam WAIT = 3'b100;
+    reg [2:0] state, state_nxt;
 
     reg [4:0] index_cnt; // 5 bits so that we can reach 16
     reg shift, shift_cmd;
@@ -34,7 +40,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
 
     reg clr_SCNT;
     reg [4:0] SCLK_cnt;
-    reg B_P_end;
+    wire B_P_end;
     // reg wait_1st_fall; // asserted if 1st fall hasnt met, default 1
     // create a counter for SCLK
     // incremented per clk cycle, when SS_n is low
@@ -100,7 +106,7 @@ module SPI_mstr(clk, rst_n, wrt, cmd, done, rd_data, SCLK, SS_n, MOSI, MISO);
     assign rd_data = rd_data_reg;
     // ?? risk of whether we really need to skip the first fall
 
-    logic set_done, clr_done;
+    reg set_done, clr_done;
     // set_done and clr_done to operate on done
     always@(posedge clk, negedge rst_n)
         begin

@@ -9,14 +9,14 @@ output reg [2:0] chnnl;
 output  reg IR_in_en;
 output reg IR_mid_en;
 output  reg IR_out_en;
-output reg [7:0] LEDs;
-output  reg [10:0] lft;
-output reg [10:0] rht;
+output wire [7:0] LEDs;
+output  wire [10:0] lft;
+output wire [10:0] rht;
 reg [2:0] chnnlcounter;
 reg intimer1;
 reg intimer2;
-reg timer1; 
-reg timer2;
+wire timer1; 
+wire timer2;
 reg [4:0] counter2;
 reg [11:0] counter1;
 
@@ -46,11 +46,12 @@ reg multiply, sub, mult2, mult4, saturate;
    
 // reg signed [15:0] alu_dst; // result of ALU
 
-reg dst2Accum,dst2Err,dst2Int,dst2Icmp,dst2Pcmp,dst2lft,dst2rht; // signal used to determine where dst go
+reg dst2Accum,dst2Err,dst2Icmp,dst2Pcmp,dst2lft,dst2rht; // signal used to determine where dst go
+wire dst2Int;
 reg waitcounter;
 reg clr_waitcounter;
 reg set_waitcounter;
-reg clr_int_dec;
+wire clr_int_dec;
 
 // A2D_intf iDUT_A2D_intf( .clk(clk), .rst_n(rst_n), .strt_cnv(strt_cnv), .cnv_cmplt(cnv_cmplt), .chnnl(chnnl), .res(res), .a2d_SS_n(a2d_SS_n), .SCLK(SCLK), .MOSI(MOSI), .MISO(MISO));
 // ADC128S iDUT_ADC128S( .clk(clk), .rst_n(rst_n), .SS_n(a2d_SS_n), .SCLK(SCLK), .MISO(MISO), .MOSI(MOSI));
@@ -59,10 +60,25 @@ pwm iDUT_pwm(.duty(DUTY_CYCLE),.clk(clk),.rst_n(rst_n),.PWM_sig(pwm_output));
 
 assign dst2Int=(int_dec==3'b100)?1'b1:1'b0;
 
-typedef enum reg [4:0] {RESET,TIMER1,CONVCOMPLETE1,TIMER2,CONVCOMPLETE2, CHECK6, INTG,ITERM, PTERM, MRT_R1, MRT_R2, MRT_L1, MRT_L2} state_t;
-state_t state, next_state;
+// typedef enum reg [4:0] {RESET,TIMER1,CONVCOMPLETE1,TIMER2,CONVCOMPLETE2, CHECK6, INTG,ITERM, PTERM, MRT_R1, MRT_R2, MRT_L1, MRT_L2} state_t;
+// state_t state, next_state;
 
-always_ff @(posedge clk, negedge rst_n) begin
+localparam RESET = 5'b0_0000;
+localparam TIMER1 = 5'b0_0001;
+localparam CONVCOMPLETE1 = 5'b0_0010;
+localparam TIMER2 = 5'b0_0011;
+localparam CONVCOMPLETE2 = 5'b0_0100;
+localparam CHECK6 = 5'b0_0101;
+localparam INTG = 5'b0_0110;
+localparam ITERM = 5'b0_0111;
+localparam PTERM = 5'b0_1000;
+localparam MRT_R1 = 5'b0_1001;
+localparam MRT_R2 = 5'b0_1010;
+localparam MRT_L1 = 5'b0_1011;
+localparam MRT_L2 = 5'b0_1100;
+reg [4:0] state, next_state;
+
+always@(posedge clk, negedge rst_n) begin
 	if (!rst_n)
 		Fwd <= 12'h000;
 	else if (~go) // if go deasserted Fwd knocked down so
@@ -71,7 +87,7 @@ always_ff @(posedge clk, negedge rst_n) begin
 		Fwd <= Fwd + 1'b1;
 end
 
-always_ff @(posedge clk, negedge rst_n) begin
+always@(posedge clk, negedge rst_n) begin
 	if (!rst_n)
 		rht_reg <= 12'h000;
 	else if (!go)
@@ -80,7 +96,7 @@ always_ff @(posedge clk, negedge rst_n) begin
 		rht_reg <= dst[11:0];
 end
 
-always_ff @(posedge clk, negedge rst_n) begin
+always@(posedge clk, negedge rst_n) begin
 	if (!rst_n)
 		lft_reg <= 12'h000;
 	else if (!go)
@@ -111,7 +127,7 @@ assign timer2 = &counter2;
 
 assign timer1 = &counter1;
 
-always_ff @(posedge clk, negedge rst_n) begin
+always @(posedge clk, negedge rst_n) begin
 	if(!rst_n)
 		state <= RESET;
 	else

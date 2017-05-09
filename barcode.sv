@@ -18,19 +18,25 @@ reg clr_cnt; // clr the counter
 reg set_cnt; // assert to start the counter
 
 reg [21:0] cpt_value; // the value captured
-reg clr_cpt_value = 1'b0; // asserted to clr the cpt value
-reg set_cpt_value = 1'b0; // asserted to set the cpt value
+reg clr_cpt_value; // asserted to clr the cpt value
+reg set_cpt_value; // asserted to set the cpt value
 
 reg ff_1, ff_2, ff_logic; // double ff to detect the falling edge of BC
-reg falling_edge; // asserted when falling edge is detected
+wire falling_edge; // asserted when falling edge is detected
+wire rising_edge;
 
 reg cnt_match_cpt; // counter match the value of period cpt
 
 reg [3:0] index_cnt; // 4 bit to count 8
 reg compare; // assert to enable cnt_match_cpt to start compare, otherwise, when rst_n asserted, both cnt and cpt_value are zero, shifter will be triggered
 
-typedef enum reg[1:0] {IDLE, CAP, SAMP} state_t;
-state_t state, state_nxt;
+// typedef enum reg[1:0] {IDLE, CAP, SAMP} state_t;
+// state_t state, state_nxt;
+localparam IDLE = 2'b00;
+localparam CAP = 2'b01;
+localparam SAMP = 2'b10;
+
+reg [1:0] state, state_nxt;
 
 // set the cpt_value
 always@(posedge clk, negedge rst_n) begin
